@@ -13,7 +13,7 @@ public class ConfigurationActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_configuration);
 
-        Spinner brandsSpinner = (Spinner) findViewById(R.id.brands_spinner);
+        /*Spinner brandsSpinner = (Spinner) findViewById(R.id.brands_spinner);
         loadSpinnerData();
 
         brandsSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
@@ -26,7 +26,7 @@ public class ConfigurationActivity extends AppCompatActivity {
             public void onNothingSelected(AdapterView<?> adapterView) {
 
             }
-        });
+        });*/
 
     }
 }
