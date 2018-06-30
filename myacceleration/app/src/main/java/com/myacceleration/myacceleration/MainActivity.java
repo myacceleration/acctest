@@ -6,6 +6,7 @@ import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
@@ -13,14 +14,27 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CompoundButton;
+import android.widget.TabHost;
 import android.widget.TextView;
+import android.widget.ToggleButton;
+
+import com.myacceleration.myacceleration.db.AppDatabase;
+
 import java.sql.Timestamp;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity
 {
-    private Button b,b2,b3;
+    //public static String SERVER = "http://192.168.1.23:8080/";
+    public static String SERVER = "https://acctest33.herokuapp.com/";
+    private static String TAG  = "myacceleration_MainActivity";
+    private ToggleButton startBtn;
+    private Button speedUpBtn, speedDownBtn;
     private TextView t;
     private TextView s,t1,t2,res,max;
     private LocationManager locationManager;
@@ -31,17 +45,22 @@ public class MainActivity extends AppCompatActivity
     private boolean record;
 
     private long timer1,timer2;
+    private UserCheckTask mAuthTask;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState)
     {
         super.onCreate(savedInstanceState);
+
         setContentView(R.layout.activity_main);
 
+        Toolbar myToolbar = (Toolbar) findViewById(R.id.my_toolbar);
+        setSupportActionBar(myToolbar);
+
         t = (TextView) findViewById(R.id.textView);
-        b = (Button) findViewById(R.id.button);
-        b2 = (Button) findViewById(R.id.button2);
-        b3 = (Button) findViewById(R.id.button3);
+        startBtn = (ToggleButton) findViewById(R.id.startBtn);
+        speedUpBtn = (Button) findViewById(R.id.speedUpBtn);
+        speedDownBtn = (Button) findViewById(R.id.speedDownBtn);
 
         s = (TextView) findViewById(R.id.textView2);
 
@@ -58,8 +77,13 @@ public class MainActivity extends AppCompatActivity
         listener = new LocationListener() {
             @Override
             public void onLocationChanged(Location location) {
+                Log.d(TAG, "location changed");
                 final Timestamp timestamp = new Timestamp(System.currentTimeMillis());
-                float lSpeed = location.getSpeed();
+                // dla testow zakomentowane
+                //float lSpeed = location.getSpeed();
+                // dla testow losujemy predkosc:
+                float lSpeed = 1+((float)Math.random()*20);
+
                 t.setText("\n " + location.getLongitude() + "\n" + location.getLatitude());
                 s.setText( lSpeed + "m/s");
                 if (lSpeed <= 0.5)
@@ -100,21 +124,29 @@ public class MainActivity extends AppCompatActivity
             }
         };
 
-        configure_button();
+        configureButton();
     }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        mAuthTask = new UserCheckTask();
+        mAuthTask.execute((Void) null);
+    }
+
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         switch (requestCode){
             case 10:
-                configure_button();
+                configureButton();
                 break;
             default:
                 break;
         }
     }
 
-    void configure_button(){
+    void configureButton(){
         // first check for permissions
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -124,15 +156,21 @@ public class MainActivity extends AppCompatActivity
             return;
         }
         // this code won't execute IF permissions are not allowed, because in the line above there is return statement.
-        b.setOnClickListener(new View.OnClickListener() {
+        startBtn.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+
             @Override
-            public void onClick(View view) {
-                //noinspection MissingPermission
-                locationManager.requestLocationUpdates("gps", 0, 0, listener);
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (!isChecked) {
+                    locationManager.removeUpdates(listener);
+                    Log.d(TAG, "zbieranie gps wylaczone");
+                } else {
+                    Log.d(TAG, "odpalamy");
+                    locationManager.requestLocationUpdates("gps", 0, 0, listener);
+                }
             }
         });
 
-        b2.setOnClickListener(new View.OnClickListener() {
+        speedUpBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 maxSpeed -= 5;
@@ -140,13 +178,48 @@ public class MainActivity extends AppCompatActivity
             }
         });
 
-        b3.setOnClickListener(new View.OnClickListener() {
+        speedDownBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 maxSpeed += 5;
                 max.setText("max: " + maxSpeed);
             }
         });
+    }
+
+
+    public class UserCheckTask extends AsyncTask<Void, Void, Boolean> {
+
+        UserCheckTask() { }
+
+        @Override
+        protected Boolean doInBackground(Void... params) {
+            if(userExistsLocalDb()) {
+                Log.d(TAG, "user w cache, autologwanie");
+                return true;
+            }
+            return false;
+        }
+
+        private boolean userExistsLocalDb() {
+            AppDatabase db = AppDatabase.getDatabase(MainActivity.this);
+            List users = db.userDao().getAll();
+            Log.d(TAG,"--------------- pobranie z cache: "+users.size());
+            return users.size() > 0;
+        }
+
+        @Override
+        protected void onPostExecute(final Boolean success) {
+            mAuthTask = null;
+            if (!success) {
+                Log.d(TAG, "logowanie manualne start");
+                Intent loginActivity = new Intent(getApplicationContext(), LoginActivity.class);
+                startActivity(loginActivity);
+            }
+        }
+
+        @Override
+        protected void onCancelled() { mAuthTask = null; }
     }
 }
 

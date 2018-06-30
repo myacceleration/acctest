@@ -7,6 +7,16 @@
     tools:context="com.myacceleration.myacceleration.MainActivity"
     tools:layout_editor_absoluteY="81dp">
 
+
+    <android.support.v7.widget.Toolbar
+        android:id="@+id/my_toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="?attr/colorPrimary"
+        android:elevation="4dp"
+        android:theme="@style/ThemeOverlay.AppCompat.ActionBar"
+        app:popupTheme="@style/ThemeOverlay.AppCompat.Light"/>
+
     <TextView
         android:id="@+id/textView"
         android:layout_width="wrap_content"
@@ -14,15 +24,16 @@
         android:layout_marginEnd="30dp"
         android:layout_marginTop="27dp"
         android:text="------\n------"
-        app:layout_constraintEnd_toEndOf="@+id/button"
-        app:layout_constraintTop_toBottomOf="@+id/button" />
+        app:layout_constraintEnd_toEndOf="@+id/startBtn"
+        app:layout_constraintTop_toBottomOf="@+id/startBtn" />
 
-    <Button
-        android:id="@+id/button"
+    <ToggleButton
+        android:id="@+id/startBtn"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="54dp"
-        android:text="start"
+        android:textOff="start"
+        android:textOn="stop"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textView2" />
@@ -32,13 +43,12 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginEnd="23dp"
-        android:layout_marginTop="16dp"
         android:text="-.- m/s"
-        app:layout_constraintEnd_toEndOf="@+id/button"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintEnd_toEndOf="@+id/startBtn"
+        tools:layout_editor_absoluteY="68dp" />
 
     <Button
-        android:id="@+id/button2"
+        android:id="@+id/speedUpBtn"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="17dp"
@@ -48,7 +58,7 @@
         app:layout_constraintStart_toStartOf="parent" />
 
     <Button
-        android:id="@+id/button3"
+        android:id="@+id/speedDownBtn"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="17dp"
@@ -74,7 +84,7 @@
         android:layout_marginBottom="18dp"
         android:layout_marginStart="16dp"
         android:text="t2"
-        app:layout_constraintBottom_toTopOf="@+id/button2"
+        app:layout_constraintBottom_toTopOf="@+id/speedUpBtn"
         app:layout_constraintStart_toStartOf="parent" />
 
     <TextView
@@ -82,7 +92,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginEnd="59dp"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="68dp"
         android:text="results:"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
@@ -92,7 +102,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="29dp"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="68dp"
         android:text="max: 15"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
