@@ -8,6 +8,15 @@
     tools:layout_editor_absoluteY="81dp">
 
 
+    <TextView
+        android:id="@+id/car_name"
+        android:layout_width="100dp"
+        android:layout_height="35dp"
+        android:layout_marginTop="144dp"
+        android:text="----------------------"
+        app:layout_constraintEnd_toEndOf="@+id/startBtn"
+        app:layout_constraintTop_toBottomOf="@+id/startBtn" />
+
     <android.support.v7.widget.Toolbar
         android:id="@+id/my_toolbar"
         android:layout_width="match_parent"
@@ -19,8 +28,8 @@
 
     <TextView
         android:id="@+id/textView"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="28dp"
+        android:layout_height="35dp"
         android:layout_marginEnd="30dp"
         android:layout_marginTop="27dp"
         android:text="------\n------"

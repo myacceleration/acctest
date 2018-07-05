@@ -15,27 +15,34 @@ import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.text.TextUtils;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CompoundButton;
-import android.widget.TabHost;
 import android.widget.TextView;
+import android.widget.Toast;
 import android.widget.ToggleButton;
 
 import com.myacceleration.myacceleration.db.AppDatabase;
+import com.myacceleration.myacceleration.db.Car;
+import com.myacceleration.myacceleration.db.User;
 
 import java.sql.Timestamp;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity
 {
-    //public static String SERVER = "http://192.168.1.23:8080/";
-    public static String SERVER = "https://acctest33.herokuapp.com/";
+    public static String SERVER = "http://192.168.1.23:8080/";
+    //public static String SERVER = "https://acctest33.herokuapp.com/";
     private static String TAG  = "myacceleration_MainActivity";
     private ToggleButton startBtn;
     private Button speedUpBtn, speedDownBtn;
     private TextView t;
+    private TextView tvCarName;
     private TextView s,t1,t2,res,max;
     private LocationManager locationManager;
     private LocationListener listener;
@@ -46,6 +53,8 @@ public class MainActivity extends AppCompatActivity
 
     private long timer1,timer2;
     private UserCheckTask mAuthTask;
+    private String mUsername = "";
+    private String mCarname;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState)
@@ -66,10 +75,9 @@ public class MainActivity extends AppCompatActivity
 
         t1 = (TextView) findViewById(R.id.textView4);
         t2 = (TextView) findViewById(R.id.textView5);
-
         res = (TextView) findViewById(R.id.textView6);
-
         max = (TextView) findViewById(R.id.textView7);
+        tvCarName = (TextView) findViewById(R.id.car_name);
 
         locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
 
@@ -124,16 +132,50 @@ public class MainActivity extends AppCompatActivity
             }
         };
 
+        if (savedInstanceState != null) {
+            mUsername = savedInstanceState.getString("user");
+        }
+
         configureButton();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        mAuthTask = new UserCheckTask();
-        mAuthTask.execute((Void) null);
+        if(TextUtils.isEmpty(mUsername)) {
+            mAuthTask = new UserCheckTask();
+            mAuthTask.execute((Void) null);
+        }
     }
 
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        outState.putString("user", mUsername);
+        super.onSaveInstanceState(outState);
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.action_rank: {
+                Toast.makeText(MainActivity.this, "Ranking", Toast.LENGTH_SHORT).show();
+                return true;
+            }
+            case R.id.action_settings: {
+                Intent configurationActivity = new Intent(getApplicationContext(), ConfigurationActivity.class);
+                startActivity(configurationActivity);
+                return true;
+            }
+        }
+        return true;
+    }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
@@ -194,18 +236,38 @@ public class MainActivity extends AppCompatActivity
 
         @Override
         protected Boolean doInBackground(Void... params) {
-            if(userExistsLocalDb()) {
+            mUsername = loadUserFromLocalDb();
+            mCarname = loadCarFromLocalDb();
+            if(!TextUtils.isEmpty(mUsername) && !TextUtils.isEmpty(mCarname)) {
                 Log.d(TAG, "user w cache, autologwanie");
                 return true;
             }
             return false;
         }
 
-        private boolean userExistsLocalDb() {
+        private String loadUserFromLocalDb() {
+            String name = "";
             AppDatabase db = AppDatabase.getDatabase(MainActivity.this);
-            List users = db.userDao().getAll();
+            List<User> users = db.userDao().getAll();
             Log.d(TAG,"--------------- pobranie z cache: "+users.size());
-            return users.size() > 0;
+            if(users.size() == 1) {
+                name = users.get(0).getName();
+                Log.d(TAG,"--------------- pobranie z cache name: "+name);
+                name = TextUtils.isEmpty(name) ? users.get(0).getLogin() : name;
+            }
+            return name;
+        }
+
+        private String loadCarFromLocalDb() {
+            String name = "";
+            AppDatabase db = AppDatabase.getDatabase(MainActivity.this);
+            List<Car> cars = db.carDao().getAll();
+            Log.d(TAG,"--------------- pobranie pojazdu z cache: "+cars.size());
+            if(cars.size() == 1) {
+                name = cars.get(0).getManufacturer() + " " + cars.get(0).getModel();
+                Log.d(TAG,"--------------- pobranie pojazdu z cache name: "+name);
+            }
+            return name;
         }
 
         @Override
@@ -215,6 +277,9 @@ public class MainActivity extends AppCompatActivity
                 Log.d(TAG, "logowanie manualne start");
                 Intent loginActivity = new Intent(getApplicationContext(), LoginActivity.class);
                 startActivity(loginActivity);
+            } else {
+                tvCarName.setText(mCarname);
+                Toast.makeText(MainActivity.this, "Zostałeś zalogowany "+mUsername+"!", Toast.LENGTH_LONG).show();
             }
         }
 

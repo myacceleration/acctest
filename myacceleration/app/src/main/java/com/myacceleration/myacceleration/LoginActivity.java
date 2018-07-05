@@ -50,7 +50,7 @@ import static android.Manifest.permission.READ_CONTACTS;
 /**
  * A login screen that offers login via email/password.
  */
-public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<Cursor> {
+public class LoginActivity extends AppCompatActivity {
 
     /**
      * Id to identity READ_CONTACTS permission request.
@@ -73,10 +73,8 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
-        // Set up the login form.
-        mEmailView = (AutoCompleteTextView) findViewById(R.id.email);
-        populateAutoComplete();
 
+        mEmailView = (AutoCompleteTextView) findViewById(R.id.email);
         mPasswordView = (EditText) findViewById(R.id.password);
         mPasswordView.setOnEditorActionListener(new TextView.OnEditorActionListener() {
             @Override
@@ -100,50 +98,6 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         mLoginFormView = findViewById(R.id.login_form);
         mProgressView = findViewById(R.id.login_progress);
     }
-
-    private void populateAutoComplete() {
-        if (!mayRequestContacts()) {
-            return;
-        }
-
-        getLoaderManager().initLoader(0, null, this);
-    }
-
-    private boolean mayRequestContacts() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
-            return true;
-        }
-        if (checkSelfPermission(READ_CONTACTS) == PackageManager.PERMISSION_GRANTED) {
-            return true;
-        }
-        if (shouldShowRequestPermissionRationale(READ_CONTACTS)) {
-            Snackbar.make(mEmailView, R.string.permission_rationale, Snackbar.LENGTH_INDEFINITE)
-                    .setAction(android.R.string.ok, new View.OnClickListener() {
-                        @Override
-                        @TargetApi(Build.VERSION_CODES.M)
-                        public void onClick(View v) {
-                            requestPermissions(new String[]{READ_CONTACTS}, REQUEST_READ_CONTACTS);
-                        }
-                    });
-        } else {
-            requestPermissions(new String[]{READ_CONTACTS}, REQUEST_READ_CONTACTS);
-        }
-        return false;
-    }
-
-    /**
-     * Callback received when a permissions request has been completed.
-     */
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
-                                           @NonNull int[] grantResults) {
-        if (requestCode == REQUEST_READ_CONTACTS) {
-            if (grantResults.length == 1 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                populateAutoComplete();
-            }
-        }
-    }
-
 
     /**
      * Attempts to sign in or register the account specified by the login form.
@@ -246,71 +200,19 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         }
     }
 
-    @Override
-    public Loader<Cursor> onCreateLoader(int i, Bundle bundle) {
-        return new CursorLoader(this,
-                // Retrieve data rows for the device user's 'profile' contact.
-                Uri.withAppendedPath(ContactsContract.Profile.CONTENT_URI,
-                        ContactsContract.Contacts.Data.CONTENT_DIRECTORY), ProfileQuery.PROJECTION,
-
-                // Select only email addresses.
-                ContactsContract.Contacts.Data.MIMETYPE +
-                        " = ?", new String[]{ContactsContract.CommonDataKinds.Email
-                .CONTENT_ITEM_TYPE},
-
-                // Show primary email addresses first. Note that there won't be
-                // a primary email address if the user hasn't specified one.
-                ContactsContract.Contacts.Data.IS_PRIMARY + " DESC");
-    }
-
-    @Override
-    public void onLoadFinished(Loader<Cursor> cursorLoader, Cursor cursor) {
-        List<String> emails = new ArrayList<>();
-        cursor.moveToFirst();
-        while (!cursor.isAfterLast()) {
-            emails.add(cursor.getString(ProfileQuery.ADDRESS));
-            cursor.moveToNext();
-        }
-
-        addEmailsToAutoComplete(emails);
-    }
-
-    @Override
-    public void onLoaderReset(Loader<Cursor> cursorLoader) {
-
-    }
-
-    private void addEmailsToAutoComplete(List<String> emailAddressCollection) {
-        //Create adapter to tell the AutoCompleteTextView what to show in its dropdown list.
-        ArrayAdapter<String> adapter =
-                new ArrayAdapter<>(LoginActivity.this,
-                        android.R.layout.simple_dropdown_item_1line, emailAddressCollection);
-
-        mEmailView.setAdapter(adapter);
-    }
-
-
-    private interface ProfileQuery {
-        String[] PROJECTION = {
-                ContactsContract.CommonDataKinds.Email.ADDRESS,
-                ContactsContract.CommonDataKinds.Email.IS_PRIMARY,
-        };
-
-        int ADDRESS = 0;
-        int IS_PRIMARY = 1;
-    }
+    public enum LoginResult { LOGIN, REGISTER, ERROR }
 
     /**
      * Represents an asynchronous login/registration task used to authenticate
      * the user.
      */
-    public class UserLoginTask extends AsyncTask<Void, Void, Boolean> {
+    public class UserLoginTask extends AsyncTask<Void, Void, LoginResult> {
 
         private final String mEmail;
         private final String mPassword;
         private Retrofit retrofit;
         private UserService service;
-        private User saved;
+        private User registerdUser;
 
         UserLoginTask(String email, String password) {
             mEmail = email;
@@ -322,7 +224,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         }
 
         @Override
-        protected Boolean doInBackground(Void... params) {
+        protected LoginResult doInBackground(Void... params) {
             try {
                 Response<User> response = loadUserFromServer();
                 if (response.isSuccessful()) {
@@ -330,16 +232,16 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
                     if (mPassword.equals(u.getPassword())) {
                         Log.i(TAG, "zalogowany ------------>" + u.getName());
                         saveToLocalDb(u);
-                        return true;
+                        return LoginResult.LOGIN;
                     }
                 } else if (response.code() == 404) {
                     return createNewAccount();
                 }
             } catch (IOException e) {
                 Log.e(TAG, e.getMessage(), e);
-                return false;
+                return LoginResult.ERROR;
             }
-            return false;
+            return LoginResult.ERROR;
         }
 
         private Response<User> loadUserFromServer() throws IOException {
@@ -348,25 +250,24 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
             return call.execute();
         }
 
-        private Boolean createNewAccount() throws IOException {
+        private LoginResult createNewAccount() throws IOException {
             Log.i(TAG, "------------> zpisuje nowego usera");
-            saveNewUser(mEmail, mPassword);
-            saved = ensureSaved(mEmail);
-            if (saved != null) {
-                saveToLocalDb(saved);
-                return true;
+            registerNewUser(mEmail, mPassword);
+            registerdUser = ensureSaved(mEmail);
+            if (registerdUser != null) {
+                saveToLocalDb(registerdUser);
+                return LoginResult.REGISTER;
             }
-            return false;
+            return LoginResult.ERROR;
         }
 
-        private void saveNewUser(String mEmail, String mPassword) throws IOException {
+        private void registerNewUser(String mEmail, String mPassword) throws IOException {
             Log.d(TAG, "--------------- zapis uzytkownika do servera!: " + mEmail);
             User userNew = new User();
             userNew.setLogin(mEmail);
             userNew.setPassword(mPassword);
             Call<Void> call = service.createUser(userNew);
             call.execute();
-            Toast.makeText(LoginActivity.this, "Użytkownik został poprawnie utworzony!", Toast.LENGTH_LONG);
         }
 
         private User ensureSaved(String mEmail) throws IOException {
@@ -380,23 +281,24 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         private void saveToLocalDb(User u) {
             AppDatabase db = AppDatabase.getDatabase(LoginActivity.this);
             db.userDao().insertAll(u);
-            Log.d(TAG, "--------------- zapis uzytkownika do cache: " + u.getName());
+            Log.d(TAG, "--------------- zapis uzytkownika do cache: " + u.getLogin());
         }
 
         @Override
-        protected void onPostExecute(final Boolean success) {
+        protected void onPostExecute(final LoginResult result) {
             mAuthTask = null;
             showProgress(false);
 
-            if (success) {
+            if (result == LoginResult.LOGIN) {
                 Log.d(TAG, "logowanie poprawne");
-                if(saved != null) {
-                    Intent configurationActivity = new Intent(getApplicationContext(), ConfigurationActivity.class);
-                    startActivity(configurationActivity);
-                } else {
-                    Intent mainActivity = new Intent(getApplicationContext(), MainActivity.class);
-                    startActivity(mainActivity);
-                }
+                Toast.makeText(LoginActivity.this, "Zostałeś zalogowany!", Toast.LENGTH_LONG).show();
+                Intent mainActivity = new Intent(getApplicationContext(), MainActivity.class);
+                startActivity(mainActivity);
+            } else if(result == LoginResult.REGISTER){
+                Log.d(TAG, "rejestracja poprawna");
+                Toast.makeText(LoginActivity.this, "Nowy użytkownik "+registerdUser.getLogin()+" zarejestrowany!", Toast.LENGTH_LONG).show();
+                Intent configurationActivity = new Intent(getApplicationContext(), ConfigurationActivity.class);
+                startActivity(configurationActivity);
             } else {
                 mPasswordView.setError(getString(R.string.error_incorrect_password));
                 mPasswordView.requestFocus();

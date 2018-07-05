@@ -8,18 +8,18 @@ import android.arch.persistence.room.Query;
 import java.util.List;
 
 @Dao
-public interface UserDao {
+public interface CarDao {
 
-    @Query("SELECT * FROM user")
-    List<User> getAll();
+    @Query("SELECT * FROM car")
+    List<Car> getAll();
+
+    @Query("delete FROM car")
+    void deleteAll();
 
     @Insert
-    void insertAll(User... users);
+    void insertAll(Car... users);
 
     @Delete
-    void delete(User user);
-
-    @Query("UPDATE user SET name=:name")
-    void update(String name);
+    void delete(Car user);
 
 }
