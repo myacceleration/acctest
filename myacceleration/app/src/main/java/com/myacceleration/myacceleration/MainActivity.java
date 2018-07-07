@@ -87,10 +87,10 @@ public class MainActivity extends AppCompatActivity
             public void onLocationChanged(Location location) {
                 Log.d(TAG, "location changed");
                 final Timestamp timestamp = new Timestamp(System.currentTimeMillis());
-                // dla testow zakomentowane
-                //float lSpeed = location.getSpeed();
-                // dla testow losujemy predkosc:
-                float lSpeed = 1+((float)Math.random()*20);
+                //dla testow zakomentowane
+                float lSpeed = location.getSpeed();
+                //dla testow losujemy predkosc:
+                //float lSpeed = 1+((float)Math.random()*20);
 
                 t.setText("\n " + location.getLongitude() + "\n" + location.getLatitude());
                 s.setText( lSpeed + "m/s");
