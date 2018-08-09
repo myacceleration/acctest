@@ -1,6 +1,7 @@
 package com.myacceleration.myacceleration;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
@@ -36,6 +37,7 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity
 {
+    public static final int MY_PREMISSION_LOCALIZATION = 10;
     //public static String SERVER = "http://192.168.1.23:8080/";
     public static String SERVER = "http://192.168.43.13:8080/";
     //public static String SERVER = "https://acctest33.herokuapp.com/";
@@ -114,18 +116,13 @@ public class MainActivity extends AppCompatActivity
             }
 
             @Override
-            public void onStatusChanged(String s, int i, Bundle bundle) {
-
-            }
+            public void onStatusChanged(String s, int i, Bundle bundle) { }
 
             @Override
-            public void onProviderEnabled(String s) {
-
-            }
+            public void onProviderEnabled(String s) { }
 
             @Override
             public void onProviderDisabled(String s) {
-
                 Intent i = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
                 startActivity(i);
             }
@@ -134,13 +131,7 @@ public class MainActivity extends AppCompatActivity
         if (savedInstanceState != null) {
             mUsername = savedInstanceState.getString("user");
         }
-
         configureButton();
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
     }
 
     @Override
@@ -175,8 +166,15 @@ public class MainActivity extends AppCompatActivity
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         switch (requestCode){
-            case 10:
-                configureButton();
+            case MY_PREMISSION_LOCALIZATION:
+                Log.i(TAG, "grantResults.length-------------------->"+grantResults.length);
+                if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    Log.d(TAG, "uprawnienia dodane");
+                } else {
+                    Intent configurationActivity = new Intent(getApplicationContext(), ConfigurationActivity.class);
+                    startActivity(configurationActivity); // TODO do rankingow moze?
+                }
                 break;
             default:
                 break;
@@ -185,16 +183,17 @@ public class MainActivity extends AppCompatActivity
 
     void configureButton(){
         // first check for permissions
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION,Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.INTERNET}
-                        ,10);
+                requestPermissions(new String[]{ Manifest.permission.ACCESS_FINE_LOCATION}
+                        , MY_PREMISSION_LOCALIZATION);
             }
             return;
         }
         // this code won't execute IF permissions are not allowed, because in the line above there is return statement.
         startBtn.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
 
+            @SuppressLint("MissingPermission")
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (!isChecked) {
