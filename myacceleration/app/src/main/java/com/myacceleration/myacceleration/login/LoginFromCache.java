@@ -7,6 +7,7 @@ import android.util.Log;
 import com.myacceleration.myacceleration.db.AppDatabase;
 import com.myacceleration.myacceleration.db.Car;
 import com.myacceleration.myacceleration.db.User;
+import com.myacceleration.myacceleration.db.UserRepository;
 
 import java.util.List;
 
@@ -21,13 +22,11 @@ public class LoginFromCache extends LoginStrategy {
     }
 
     private void loadUserFromLocalDb(Context context) {
-        AppDatabase db = AppDatabase.getDatabase(context);
-        List<User> users = db.userDao().getAll();
-        Log.d(TAG,"--------------- pobranie z cache: "+users.size());
-        if(users.size() == 1) {
-            username = users.get(0).getName();
+        User user = UserRepository.getDefaultUser(context);
+        if(user != null) {
+            username = user.getName();
             Log.d(TAG,"--------------- pobranie z cache name: "+username);
-            username = TextUtils.isEmpty(username) ? users.get(0).getLogin() : username;
+            username = TextUtils.isEmpty(username) ? user.getLogin() : username;
             status = Status.LOGIN_SUCCESS;
         }
     }

@@ -9,7 +9,6 @@ import android.os.Build;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.Toolbar;
-import android.text.TextUtils;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -26,6 +25,7 @@ import com.myacceleration.myacceleration.db.AppDatabase;
 import com.myacceleration.myacceleration.db.Car;
 import com.myacceleration.myacceleration.db.CarDao;
 import com.myacceleration.myacceleration.db.User;
+import com.myacceleration.myacceleration.db.UserRepository;
 import com.myacceleration.myacceleration.rest.CarService;
 
 import java.io.IOException;
@@ -43,7 +43,7 @@ public class ConfigurationActivity extends AppCompatActivity {
     private static final String TAG = "ConfigurationActivity";
     private View mConfFormView;
     private View mProgressView;
-    private LoadBrandsTask mBrandsTask = null;
+    private LoadInitialDataTask mBrandsTask = null;
     private LoadCarsTask mCarsTask = null;
     private SaveConfTask msaveConfTask = null;
     private Spinner brandsSpinner;
@@ -69,7 +69,7 @@ public class ConfigurationActivity extends AppCompatActivity {
         mNickNameView = (EditText) findViewById(R.id.nick_name);
 
         showProgress(true);
-        mBrandsTask = new LoadBrandsTask();
+        mBrandsTask = new LoadInitialDataTask();
         mBrandsTask.execute((Void) null);
 
         brandsSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
@@ -166,12 +166,12 @@ public class ConfigurationActivity extends AppCompatActivity {
         }
     }
 
-    public class LoadBrandsTask extends AsyncTask<Void, Void, Boolean> {
+    public class LoadInitialDataTask extends AsyncTask<Void, Void, Boolean> {
 
         private Retrofit retrofit;
         private CarService service;
 
-        LoadBrandsTask() {
+        LoadInitialDataTask() {
             retrofit = new Retrofit.Builder()
                     .baseUrl(MainActivity.SERVER)
                     .addConverterFactory(GsonConverterFactory.create())
@@ -181,6 +181,10 @@ public class ConfigurationActivity extends AppCompatActivity {
         @Override
         protected Boolean doInBackground(Void... params) {
             try {
+                User u = UserRepository.getDefaultUser(getApplicationContext());
+                if(u != null) {
+                    mNickNameView.setText(u.getName());
+                }
                 Response<List<String>> response = loadBrandsFromServer();
                 if (response.isSuccessful()) {
                     List<String> brands = response.body();
