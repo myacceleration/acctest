@@ -4,48 +4,26 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
 import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.support.annotation.NonNull;
-import android.support.design.widget.Snackbar;
-import android.support.v7.app.AppCompatActivity;
-import android.app.LoaderManager.LoaderCallbacks;
-
-import android.content.CursorLoader;
-import android.content.Loader;
-import android.database.Cursor;
-import android.net.Uri;
 import android.os.AsyncTask;
-
 import android.os.Build;
 import android.os.Bundle;
-import android.provider.ContactsContract;
+import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.inputmethod.EditorInfo;
-import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.myacceleration.myacceleration.db.AppDatabase;
-import com.myacceleration.myacceleration.db.User;
-import com.myacceleration.myacceleration.rest.UserService;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
-import retrofit2.Call;
-import retrofit2.Response;
-import retrofit2.Retrofit;
-import retrofit2.converter.gson.GsonConverterFactory;
-
-import static android.Manifest.permission.READ_CONTACTS;
+import com.myacceleration.myacceleration.login.LoginFromCache;
+import com.myacceleration.myacceleration.login.LoginFromServer;
+import com.myacceleration.myacceleration.login.LoginStrategy;
+import com.myacceleration.myacceleration.login.RegisterAndLoginFromServer;
 
 /**
  * A login screen that offers login via email/password.
@@ -62,12 +40,14 @@ public class LoginActivity extends AppCompatActivity {
      * Keep track of the login task to ensure we can cancel it if requested.
      */
     private UserLoginTask mAuthTask = null;
+    private LocalLoginTask mLocalLoginTask = null;
 
     // UI references.
     private AutoCompleteTextView mEmailView;
     private EditText mPasswordView;
     private View mProgressView;
     private View mLoginFormView;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -97,6 +77,13 @@ public class LoginActivity extends AppCompatActivity {
 
         mLoginFormView = findViewById(R.id.login_form);
         mProgressView = findViewById(R.id.login_progress);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        mLocalLoginTask = new LocalLoginTask(new LoginFromCache());
+        mLocalLoginTask.execute((Void) null);
     }
 
     /**
@@ -200,107 +187,53 @@ public class LoginActivity extends AppCompatActivity {
         }
     }
 
-    public enum LoginResult { LOGIN, REGISTER, ERROR }
 
     /**
      * Represents an asynchronous login/registration task used to authenticate
      * the user.
      */
-    public class UserLoginTask extends AsyncTask<Void, Void, LoginResult> {
+    public class UserLoginTask extends AsyncTask<Void, Void, LoginStrategy> {
 
         private final String mEmail;
         private final String mPassword;
-        private Retrofit retrofit;
-        private UserService service;
-        private User registerdUser;
 
         UserLoginTask(String email, String password) {
             mEmail = email;
             mPassword = password;
-            retrofit = new Retrofit.Builder()
-                    .baseUrl(MainActivity.SERVER)
-                    .addConverterFactory(GsonConverterFactory.create())
-                    .build();
         }
 
         @Override
-        protected LoginResult doInBackground(Void... params) {
-            try {
-                Response<User> response = loadUserFromServer();
-                if (response.isSuccessful()) {
-                    User u = response.body();
-                    if (mPassword.equals(u.getPassword())) {
-                        Log.i(TAG, "zalogowany ------------>" + u.getName());
-                        saveToLocalDb(u);
-                        return LoginResult.LOGIN;
-                    }
-                } else if (response.code() == 404) {
-                    return createNewAccount();
-                }
-            } catch (IOException e) {
-                Log.e(TAG, e.getMessage(), e);
-                return LoginResult.ERROR;
+        protected LoginStrategy doInBackground(Void... params) {
+            LoginStrategy result = new LoginFromServer();
+            result.doLogin(LoginActivity.this, mEmail, mPassword);
+            if (result.getStatus().equals(LoginStrategy.Status.TO_REGISTER)) {
+                result = new RegisterAndLoginFromServer();
+                result.doLogin(LoginActivity.this, mEmail, mPassword);
             }
-            return LoginResult.ERROR;
-        }
-
-        private Response<User> loadUserFromServer() throws IOException {
-            service = retrofit.create(UserService.class);
-            Call<User> call = service.getUser(mEmail);
-            return call.execute();
-        }
-
-        private LoginResult createNewAccount() throws IOException {
-            Log.i(TAG, "------------> zpisuje nowego usera");
-            registerNewUser(mEmail, mPassword);
-            registerdUser = ensureSaved(mEmail);
-            if (registerdUser != null) {
-                saveToLocalDb(registerdUser);
-                return LoginResult.REGISTER;
-            }
-            return LoginResult.ERROR;
-        }
-
-        private void registerNewUser(String mEmail, String mPassword) throws IOException {
-            Log.d(TAG, "--------------- zapis uzytkownika do servera!: " + mEmail);
-            User userNew = new User();
-            userNew.setLogin(mEmail);
-            userNew.setPassword(mPassword);
-            Call<Void> call = service.createUser(userNew);
-            call.execute();
-        }
-
-        private User ensureSaved(String mEmail) throws IOException {
-            Response<User> response = loadUserFromServer();
-            if(response.isSuccessful()) {
-                return response.body();
-            }
-            return null;
-        }
-
-        private void saveToLocalDb(User u) {
-            AppDatabase db = AppDatabase.getDatabase(LoginActivity.this);
-            db.userDao().insertAll(u);
-            Log.d(TAG, "--------------- zapis uzytkownika do cache: " + u.getLogin());
+            return result;
         }
 
         @Override
-        protected void onPostExecute(final LoginResult result) {
+        protected void onPostExecute(final LoginStrategy result) {
             mAuthTask = null;
             showProgress(false);
 
-            if (result == LoginResult.LOGIN) {
+            if (result.getStatus() == LoginStrategy.Status.LOGIN_SUCCESS) {
                 Log.d(TAG, "logowanie poprawne");
                 Toast.makeText(LoginActivity.this, "Zostałeś zalogowany!", Toast.LENGTH_LONG).show();
                 Intent mainActivity = new Intent(getApplicationContext(), MainActivity.class);
                 startActivity(mainActivity);
-            } else if(result == LoginResult.REGISTER){
+            } else if (result.getStatus() == LoginStrategy.Status.REGISTRATION_SUCCESS) {
                 Log.d(TAG, "rejestracja poprawna");
-                Toast.makeText(LoginActivity.this, "Nowy użytkownik "+registerdUser.getLogin()+" zarejestrowany!", Toast.LENGTH_LONG).show();
+                Toast.makeText(LoginActivity.this, "Nowy użytkownik " + result.getUsername() + " zarejestrowany!", Toast.LENGTH_LONG).show();
                 Intent configurationActivity = new Intent(getApplicationContext(), ConfigurationActivity.class);
                 startActivity(configurationActivity);
             } else {
-                mPasswordView.setError(getString(R.string.error_incorrect_password));
+                if(result.getStatus() == LoginStrategy.Status.ERROR) {
+                    mPasswordView.setError(result.getMessage());
+                } else {
+                    mPasswordView.setError(getString(R.string.error_incorrect_password));
+                }
                 mPasswordView.requestFocus();
             }
         }
@@ -309,6 +242,42 @@ public class LoginActivity extends AppCompatActivity {
         protected void onCancelled() {
             mAuthTask = null;
             showProgress(false);
+        }
+    }
+
+
+    public class LocalLoginTask extends AsyncTask<Void, Void, LoginStrategy> {
+
+        LoginStrategy loginStrategy;
+
+        LocalLoginTask(LoginStrategy loginStrategy) {
+            this.loginStrategy = loginStrategy;
+        }
+
+        @Override
+        protected LoginStrategy doInBackground(Void... params) {
+            loginStrategy.doLogin(LoginActivity.this, null, null);
+            if (LoginStrategy.Status.LOGIN_SUCCESS.equals(loginStrategy.getStatus())) {
+                Log.d(TAG, "user w cache, autologwanie");
+            }
+            return loginStrategy;
+        }
+
+        @Override
+        protected void onPostExecute(final LoginStrategy result) {
+            mLocalLoginTask = null;
+            if (LoginStrategy.Status.LOGIN_SUCCESS.equals(loginStrategy.getStatus())) {
+                Toast.makeText(LoginActivity.this, "Zostałeś zalogowany " + loginStrategy.getUsername() + "!", Toast.LENGTH_LONG).show();
+                Intent mainActivity = new Intent(getApplicationContext(), MainActivity.class);
+                startActivity(mainActivity);//TODO przekazac username, car
+            } else {
+                Log.d(TAG, "zostajemy przy logowaniu manualnym");
+            }
+        }
+
+        @Override
+        protected void onCancelled() {
+            mLocalLoginTask = null;
         }
     }
 }

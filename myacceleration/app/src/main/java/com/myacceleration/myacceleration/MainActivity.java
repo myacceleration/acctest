@@ -36,7 +36,8 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity
 {
-    public static String SERVER = "http://192.168.1.23:8080/";
+    //public static String SERVER = "http://192.168.1.23:8080/";
+    public static String SERVER = "http://192.168.43.13:8080/";
     //public static String SERVER = "https://acctest33.herokuapp.com/";
     private static String TAG  = "myacceleration_MainActivity";
     private ToggleButton startBtn;
@@ -52,9 +53,7 @@ public class MainActivity extends AppCompatActivity
     private boolean record;
 
     private long timer1,timer2;
-    private UserCheckTask mAuthTask;
     private String mUsername = "";
-    private String mCarname;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState)
@@ -87,10 +86,10 @@ public class MainActivity extends AppCompatActivity
             public void onLocationChanged(Location location) {
                 Log.d(TAG, "location changed");
                 final Timestamp timestamp = new Timestamp(System.currentTimeMillis());
-                //dla testow zakomentowane
-                float lSpeed = location.getSpeed();
-                //dla testow losujemy predkosc:
-                //float lSpeed = 1+((float)Math.random()*20);
+                // dla testow zakomentowane
+                //float lSpeed = location.getSpeed();
+                // dla testow losujemy predkosc:
+                float lSpeed = 1+((float)Math.random()*20);
 
                 t.setText("\n " + location.getLongitude() + "\n" + location.getLatitude());
                 s.setText( lSpeed + "m/s");
@@ -142,10 +141,6 @@ public class MainActivity extends AppCompatActivity
     @Override
     protected void onResume() {
         super.onResume();
-        if(TextUtils.isEmpty(mUsername)) {
-            mAuthTask = new UserCheckTask();
-            mAuthTask.execute((Void) null);
-        }
     }
 
     @Override
@@ -227,64 +222,6 @@ public class MainActivity extends AppCompatActivity
                 max.setText("max: " + maxSpeed);
             }
         });
-    }
-
-
-    public class UserCheckTask extends AsyncTask<Void, Void, Boolean> {
-
-        UserCheckTask() { }
-
-        @Override
-        protected Boolean doInBackground(Void... params) {
-            mUsername = loadUserFromLocalDb();
-            mCarname = loadCarFromLocalDb();
-            if(!TextUtils.isEmpty(mUsername) && !TextUtils.isEmpty(mCarname)) {
-                Log.d(TAG, "user w cache, autologwanie");
-                return true;
-            }
-            return false;
-        }
-
-        private String loadUserFromLocalDb() {
-            String name = "";
-            AppDatabase db = AppDatabase.getDatabase(MainActivity.this);
-            List<User> users = db.userDao().getAll();
-            Log.d(TAG,"--------------- pobranie z cache: "+users.size());
-            if(users.size() == 1) {
-                name = users.get(0).getName();
-                Log.d(TAG,"--------------- pobranie z cache name: "+name);
-                name = TextUtils.isEmpty(name) ? users.get(0).getLogin() : name;
-            }
-            return name;
-        }
-
-        private String loadCarFromLocalDb() {
-            String name = "";
-            AppDatabase db = AppDatabase.getDatabase(MainActivity.this);
-            List<Car> cars = db.carDao().getAll();
-            Log.d(TAG,"--------------- pobranie pojazdu z cache: "+cars.size());
-            if(cars.size() == 1) {
-                name = cars.get(0).getManufacturer() + " " + cars.get(0).getModel();
-                Log.d(TAG,"--------------- pobranie pojazdu z cache name: "+name);
-            }
-            return name;
-        }
-
-        @Override
-        protected void onPostExecute(final Boolean success) {
-            mAuthTask = null;
-            if (!success) {
-                Log.d(TAG, "logowanie manualne start");
-                Intent loginActivity = new Intent(getApplicationContext(), LoginActivity.class);
-                startActivity(loginActivity);
-            } else {
-                tvCarName.setText(mCarname);
-                Toast.makeText(MainActivity.this, "Zostałeś zalogowany "+mUsername+"!", Toast.LENGTH_LONG).show();
-            }
-        }
-
-        @Override
-        protected void onCancelled() { mAuthTask = null; }
     }
 }
 
