@@ -82,7 +82,6 @@ public class MainActivity extends AppCompatActivity
 
         locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
 
-
         listener = new LocationListener() {
             @Override
             public void onLocationChanged(Location location) {
@@ -132,6 +131,13 @@ public class MainActivity extends AppCompatActivity
             mUsername = savedInstanceState.getString("user");
         }
         configureButton();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        locationManager.removeUpdates(listener);
+        startBtn.setChecked(false);
     }
 
     @Override
