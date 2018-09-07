@@ -38,8 +38,8 @@ import java.util.List;
 public class MainActivity extends AppCompatActivity
 {
     public static final int MY_PREMISSION_LOCALIZATION = 10;
-    //public static String SERVER = "http://192.168.1.23:8080/";
-    public static String SERVER = "http://192.168.43.13:8080/";
+    public static String SERVER = "http://192.168.1.23:8080/";
+    //public static String SERVER = "http://192.168.43.13:8080/";
     //public static String SERVER = "https://acctest33.herokuapp.com/";
     private static String TAG  = "myacceleration_MainActivity";
     private ToggleButton startBtn;
@@ -56,6 +56,8 @@ public class MainActivity extends AppCompatActivity
 
     private long timer1,timer2;
     private String mUsername = "";
+
+    private static float fakegpsValue = 0.0f;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState)
@@ -85,12 +87,12 @@ public class MainActivity extends AppCompatActivity
         listener = new LocationListener() {
             @Override
             public void onLocationChanged(Location location) {
-                Log.d(TAG, "location changed");
                 final Timestamp timestamp = new Timestamp(System.currentTimeMillis());
                 // dla testow zakomentowane
                 //float lSpeed = location.getSpeed();
                 // dla testow losujemy predkosc:
-                float lSpeed = 1+((float)Math.random()*20);
+                float lSpeed = fakeGPS();
+                Log.d(TAG, "speed changed:"+lSpeed);
 
                 t.setText("\n " + location.getLongitude() + "\n" + location.getLatitude());
                 s.setText( lSpeed + "m/s");
@@ -112,6 +114,12 @@ public class MainActivity extends AppCompatActivity
                     noResults++;
                     res.append("\n[" + noResults + "]: " + resultAcc);
                 }
+            }
+
+            private float fakeGPS() {
+                if(fakegpsValue > maxSpeed) fakegpsValue = 0.0f;
+                fakegpsValue += (float)Math.random();
+                return fakegpsValue;
             }
 
             @Override
