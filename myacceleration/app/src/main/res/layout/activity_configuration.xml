@@ -44,7 +44,8 @@
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
                 android:padding="20dp"
-                android:hint="@string/select_brand"
+                android:spinnerMode="dialog"
+                android:prompt="@string/select_brand"
                 style="@style/Widget.AppCompat.Spinner.Underlined"/>
 
             <Spinner
@@ -52,7 +53,8 @@
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
                 android:padding="20dp"
-                android:hint="@string/select_model"
+                android:spinnerMode="dialog"
+                android:prompt="@string/select_model"
                 style="@style/Widget.AppCompat.Spinner.Underlined"/>
 
             <EditText
