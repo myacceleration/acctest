@@ -87,9 +87,9 @@ public class MainActivity extends AppCompatActivity
             public void onLocationChanged(Location location) {
                 final long timestamp = System.currentTimeMillis();
                 // dla testow zakomentowane
-                //float lSpeed = location.getSpeed() * KM_H_FAKTOR;
+                float lSpeed = location.getSpeed() * KM_H_FAKTOR;
                 // dla testow losujemy predkosc:
-                float lSpeed = fakeGPS() * KM_H_FAKTOR;
+                //float lSpeed = fakeGPS() * KM_H_FAKTOR;
                 s.setText( round1Digit(lSpeed)+ " km/h");
 
                 if (lSpeed <= 3.0f)
