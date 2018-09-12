@@ -124,9 +124,9 @@ public class ConfigurationActivity extends AppCompatActivity {
                 return true;
             }
             case R.id.action_list1: {
-                Toast.makeText(ConfigurationActivity.this, "Ranking", Toast.LENGTH_SHORT).show();
-                //Intent rankActivity = new Intent(getApplicationContext(), ConfigurationActivity.class);
-                //startActivity(configurationActivity);
+                //Toast.makeText(ConfigurationActivity.this, "Ranking", Toast.LENGTH_SHORT).show();
+                Intent rankActivity = new Intent(getApplicationContext(), RankingActivity.class);
+                startActivity(rankActivity);
                 return true;
             }
         }

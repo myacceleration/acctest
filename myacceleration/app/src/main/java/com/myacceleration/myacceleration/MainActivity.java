@@ -37,9 +37,9 @@ public class MainActivity extends AppCompatActivity
 {
     public static final int MY_PREMISSION_LOCALIZATION = 10;
     private static final float KM_H_FAKTOR = 3.6f;
-    //public static String SERVER = "http://192.168.1.23:8080/";
+    public static String SERVER = "http://192.168.1.23:8080/";
     //public static String SERVER = "http://192.168.43.13:8080/";
-    public static String SERVER = "https://acctest33.herokuapp.com/";
+    //public static String SERVER = "https://acctest33.herokuapp.com/";
     private static String TAG  = "myacceleration_MainActivity";
     private ToggleButton startBtn;
     private Button speedUpBtn, speedDownBtn;
@@ -87,9 +87,9 @@ public class MainActivity extends AppCompatActivity
             public void onLocationChanged(Location location) {
                 final long timestamp = System.currentTimeMillis();
                 // dla testow zakomentowane
-                float lSpeed = location.getSpeed() * KM_H_FAKTOR;
+                //float lSpeed = location.getSpeed() * KM_H_FAKTOR;
                 // dla testow losujemy predkosc:
-                //float lSpeed = fakeGPS() * KM_H_FAKTOR;
+                float lSpeed = fakeGPS() * KM_H_FAKTOR;
                 s.setText( round1Digit(lSpeed)+ " km/h");
 
                 if (lSpeed <= 3.0f)
@@ -182,10 +182,13 @@ public class MainActivity extends AppCompatActivity
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.action_rank: {
-                Toast.makeText(MainActivity.this, "Ranking", Toast.LENGTH_SHORT).show();
+                Log.d(TAG, "----------------------- rank");
+                Intent rankActivity = new Intent(getApplicationContext(), RankingActivity.class);
+                startActivity(rankActivity);
                 return true;
             }
             case R.id.action_settings: {
+                Log.d(TAG, "----------------------- conf");
                 Intent configurationActivity = new Intent(getApplicationContext(), ConfigurationActivity.class);
                 startActivity(configurationActivity);
                 return true;
@@ -270,7 +273,7 @@ public class MainActivity extends AppCompatActivity
         private String loadCarName() {
             Car car = CarRepository.getDefaultCar(getApplicationContext());
             if(car != null) {
-                return "Jedziesz " + car.getManufacturer() + " " +car.getModel();
+                return car.getManufacturer() + " " +car.getModel();
             }
             return "";
         }
