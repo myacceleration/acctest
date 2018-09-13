@@ -31,7 +31,7 @@ public class MyScoreRecyclerViewAdapter extends RecyclerView.Adapter<MyScoreRecy
     @Override
     public void onBindViewHolder(final ViewHolder holder, int position) {
         holder.mScore = scores.get(position);
-        holder.mIdView.setText(scores.get(position).getId().toString());
+        holder.mIdView.setText(""+(position+1));
         holder.mUserNameView.setText(scores.get(position).getUsername());
         holder.mScoreView.setText(scores.get(position).getValue().toString());
 

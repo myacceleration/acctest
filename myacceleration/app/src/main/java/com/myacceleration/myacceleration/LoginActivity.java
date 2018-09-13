@@ -269,7 +269,7 @@ public class LoginActivity extends AppCompatActivity {
             if (LoginStrategy.Status.LOGIN_SUCCESS.equals(loginStrategy.getStatus())) {
                 Toast.makeText(LoginActivity.this, "Zostałeś zalogowany " + loginStrategy.getUsername() + "!", Toast.LENGTH_LONG).show();
                 Intent mainActivity = new Intent(getApplicationContext(), MainActivity.class);
-                startActivity(mainActivity);//TODO przekazac username, car
+                startActivity(mainActivity);
             } else {
                 Log.d(TAG, "zostajemy przy logowaniu manualnym");
             }
